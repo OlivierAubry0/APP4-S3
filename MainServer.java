@@ -41,10 +41,11 @@ public class MainServer {
                     // Write packet data to file
                     fileOutputStream.write(data, 0, receivePacket.getLength());
                     // Check for termination signal
-                    if (data.length == 1 && data[0] == 0 || data == null ) {
+                    if (data[0] == 0) {
                         System.out.println("File received successfully.");
                         break;
                     }
+
                 }
 
 // Close file output stream

@@ -43,7 +43,7 @@ public class MainClient {
             byte[] terminationSignal = {0};
             DatagramPacket terminationPacket = new DatagramPacket(terminationSignal, terminationSignal.length, serverAddress, PORT);
             socket.send(terminationPacket);
-
+            System.out.println("File sent successfully.");
             // Receive acknowledgement from the server
             byte[] receiveBuffer = new byte[BUFFER_SIZE];
             DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
