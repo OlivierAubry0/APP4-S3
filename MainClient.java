@@ -16,6 +16,7 @@ public class MainClient {
 
         String serverIP = args[0];
         String filePath = args[1];
+        Boolean error = Boolean.valueOf(args[2]);
 
         try {
             DatagramSocket socket = new DatagramSocket();
@@ -30,7 +31,7 @@ public class MainClient {
             socket.send(filenamePacket);
 
             TransportLayer transportLayer = new TransportLayer(socket, serverAddress, PORT);
-            transportLayer.sendData(Path.of(filePath));
+            transportLayer.sendData(Path.of(filePath), error);
             transportLayer.sendTerminationSignal();
 
             // Receive acknowledgement from the server
@@ -47,7 +48,6 @@ public class MainClient {
                 System.out.println("Invalid CRC in acknowledgment");
                 DataLinkLayer.writeLog("Invalid CRC in received data from server: " + serverIP + ":" + PORT);
             } else {
-                System.out.println("File sent successfully.");
                 String acknowledgment = new String(DataLinkLayer.removeCRC(ackData));
                 System.out.println("Server acknowledgment: " + acknowledgment);
             }
