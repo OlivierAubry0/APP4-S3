@@ -16,6 +16,7 @@ public class MainClient {
 
         String serverIP = args[0];
         String filePath = args[1];
+        Boolean error = Boolean.valueOf(args[2]);
 
         try {
             DatagramSocket socket = new DatagramSocket();
@@ -30,7 +31,7 @@ public class MainClient {
             socket.send(filenamePacket);
 
             TransportLayer transportLayer = new TransportLayer(socket, serverAddress, PORT);
-            transportLayer.sendData(Path.of(filePath));
+            transportLayer.sendData(Path.of(filePath), error);
             transportLayer.sendTerminationSignal();
 
             // Receive acknowledgement from the server

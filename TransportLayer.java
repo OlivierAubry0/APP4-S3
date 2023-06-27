@@ -16,7 +16,7 @@ public class TransportLayer {
         this.port = port;
     }
 
-    public void sendData(Path filePath) throws IOException {
+    public void sendData(Path filePath, boolean simulateError) throws IOException {
         byte[] fileData = Files.readAllBytes(filePath);
         int start = 0;
 
@@ -26,6 +26,10 @@ public class TransportLayer {
 
             // Ajouter CRC au paquet
             byte[] chunkWithCRC = DataLinkLayer.addCRC(chunk);
+            if (simulateError) {
+                // Simulate error by modifying the CRC value
+                chunkWithCRC[chunkWithCRC.length - 1]++; // Modify the last byte of CRC
+            }
 
             DatagramPacket sendPacket = new DatagramPacket(chunkWithCRC, chunkWithCRC.length, serverAddress, port);
             socket.send(sendPacket);
