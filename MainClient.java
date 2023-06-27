@@ -48,7 +48,6 @@ public class MainClient {
                 System.out.println("Invalid CRC in acknowledgment");
                 DataLinkLayer.writeLog("Invalid CRC in received data from server: " + serverIP + ":" + PORT);
             } else {
-                System.out.println("File sent successfully.");
                 String acknowledgment = new String(DataLinkLayer.removeCRC(ackData));
                 System.out.println("Server acknowledgment: " + acknowledgment);
             }

@@ -50,7 +50,6 @@ public class TransportLayer {
 
             // Check for termination signal first
             if (data[0] == -1) {
-                System.out.println("File received successfully.");
                 break;
             }
 

@@ -37,9 +37,10 @@ public class MainServer {
 
                 // Close file output stream
                 fileOutputStream.close();
+                System.out.println("File received");
 
                 // Send acknowledgement to the client
-                byte[] ackData = "File received successfully.".getBytes();
+                byte[] ackData = "End of transmission. View server logs for details".getBytes();
                 ackData = DataLinkLayer.addCRC(ackData);
                 DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
                 socket.send(ackPacket);
