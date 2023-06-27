@@ -29,41 +29,30 @@ public class MainClient {
             DatagramPacket filenamePacket = new DatagramPacket(filenameData, filenameData.length, serverAddress, PORT);
             socket.send(filenamePacket);
 
-            // Prepare file input stream
-            InputStream fileInputStream = Files.newInputStream(Path.of(filePath));
-
-            // Send file data in packets
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int bytesRead;
-            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                buffer = Arrays.copyOfRange(buffer, 0, bytesRead);
-                byte[] dataWithCRC = DataLinkLayer.addCRC(buffer);
-                DatagramPacket dataPacket = new DatagramPacket(dataWithCRC, dataWithCRC.length, serverAddress, PORT);
-                socket.send(dataPacket);
-            }
-
-            // Send termination signal
-            byte[] terminationSignal = {0};
-            DatagramPacket terminationPacket = new DatagramPacket(terminationSignal, terminationSignal.length, serverAddress, PORT);
-            socket.send(terminationPacket);
+            TransportLayer transportLayer = new TransportLayer(socket, serverAddress, PORT);
+            transportLayer.sendData(Path.of(filePath));
+            transportLayer.sendTerminationSignal();
 
             // Receive acknowledgement from the server
             byte[] receiveBuffer = new byte[BUFFER_SIZE];
             DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
             socket.receive(receivePacket);
 
-            if (!DataLinkLayer.isCRCValid(receivePacket.getData())) {
-                System.out.println("Invalid CRC in acknowledgment");
-                //DataLinkLayer.writeLog("Invalid CRC in received data from client: " + clientAddress + ":" + clientPort);
+            // Only consider the actual received data
+            byte[] ackData = Arrays.copyOf(receivePacket.getData(), receivePacket.getLength());
 
+            System.out.println("Client received acknowledgment: " + Arrays.toString(ackData));
+
+            if (!DataLinkLayer.isCRCValid(ackData)) {
+                System.out.println("Invalid CRC in acknowledgment");
+                DataLinkLayer.writeLog("Invalid CRC in received data from server: " + serverIP + ":" + PORT);
             } else {
                 System.out.println("File sent successfully.");
-                String acknowledgment = new String(DataLinkLayer.removeCRC(receivePacket.getData()));
+                String acknowledgment = new String(DataLinkLayer.removeCRC(ackData));
                 System.out.println("Server acknowledgment: " + acknowledgment);
             }
 
             // Close file input stream and socket
-            fileInputStream.close();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();

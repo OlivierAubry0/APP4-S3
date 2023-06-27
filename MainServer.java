@@ -30,35 +30,20 @@ public class MainServer {
                 Path filePath = Path.of(filename);
                 OutputStream fileOutputStream = Files.newOutputStream(filePath, StandardOpenOption.CREATE);
 
+                TransportLayer transportLayer = new TransportLayer(socket, clientAddress, clientPort);
+
                 // Receive and write file data
-                while (true) {
-                    socket.receive(receivePacket);
-                    byte[] data = receivePacket.getData();
-
-                    if (!DataLinkLayer.isCRCValid(data)) {
-                        System.out.println("Invalid CRC in received data");
-                        // Handle error...
-                    } else {
-                        // Remove CRC before writing to file
-                        byte[] dataWithoutCRC = DataLinkLayer.removeCRC(data);
-                        fileOutputStream.write(dataWithoutCRC, 0, dataWithoutCRC.length);
-                    }
-
-                    // Check for termination signal
-                    if (data[0] == 0) {
-                        System.out.println("File received successfully.");
-                        break;
-                    }
-                }
+                transportLayer.receiveData(fileOutputStream);
 
                 // Close file output stream
                 fileOutputStream.close();
 
                 // Send acknowledgement to the client
                 byte[] ackData = "File received successfully.".getBytes();
-                byte[] ackDataWithCRC = DataLinkLayer.addCRC(ackData);
-                DatagramPacket ackPacket = new DatagramPacket(ackDataWithCRC, ackDataWithCRC.length, clientAddress, clientPort);
+                ackData = DataLinkLayer.addCRC(ackData);
+                DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
                 socket.send(ackPacket);
+
             }
         } catch (IOException e) {
             e.printStackTrace();

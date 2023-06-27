@@ -37,9 +37,12 @@ public class DataLinkLayer {
     }
 
     public static boolean isCRCValid(byte[] data) {
-        int crc = calculateCRC(removeCRC(data));
-        return crc == 0;
+        byte[] dataWithoutCRC = removeCRC(data);
+        int originalCRC = ByteBuffer.wrap(data, dataWithoutCRC.length, 4).getInt();
+        int calculatedCRC = calculateCRC(dataWithoutCRC);
+        return originalCRC == calculatedCRC;
     }
+
 
     public static void writeLog(String logMessage) {
         try (PrintWriter writer = new PrintWriter(new FileWriter("liasonDeDonnes.log", true))) {

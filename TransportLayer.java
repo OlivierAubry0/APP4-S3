@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 public class TransportLayer {
     private static final int BUFFER_SIZE = 1024;
@@ -14,18 +16,54 @@ public class TransportLayer {
         this.port = port;
     }
 
-    public void sendData(InputStream fileInputStream) throws IOException {
-        byte[] buffer = new byte[BUFFER_SIZE];
-        int bytesRead;
+    public void sendData(Path filePath) throws IOException {
+        byte[] fileData = Files.readAllBytes(filePath);
+        int start = 0;
 
-        while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-            DatagramPacket dataPacket = new DatagramPacket(buffer, bytesRead, serverAddress, port);
-            socket.send(dataPacket);
+        while (start < fileData.length) {
+            int end = Math.min(fileData.length, start + BUFFER_SIZE);
+            byte[] chunk = Arrays.copyOfRange(fileData, start, end);
+
+            // Ajouter CRC au paquet
+            byte[] chunkWithCRC = DataLinkLayer.addCRC(chunk);
+
+            DatagramPacket sendPacket = new DatagramPacket(chunkWithCRC, chunkWithCRC.length, serverAddress, port);
+            socket.send(sendPacket);
+
+            start = end;
+        }
+    }
+
+    public void receiveData(OutputStream fileOutputStream) throws IOException {
+        // Receive and write file data
+        while (true) {
+            byte[] receiveBuffer = new byte[BUFFER_SIZE];
+            DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+            socket.receive(receivePacket);
+
+            // Only consider the actual received data
+            byte[] data = Arrays.copyOf(receiveBuffer, receivePacket.getLength());
+
+            // Check for termination signal first
+            if (data[0] == -1) {
+                System.out.println("File received successfully.");
+                break;
+            }
+
+            // Then check for CRC validity
+            if (!DataLinkLayer.isCRCValid(data)) {
+                System.out.println("Invalid CRC in received data");
+                // Handle error...
+            } else {
+                // Remove CRC before writing to file
+                byte[] dataWithoutCRC = DataLinkLayer.removeCRC(data);
+                fileOutputStream.write(dataWithoutCRC, 0, dataWithoutCRC.length);
+            }
         }
     }
 
     public void sendTerminationSignal() throws IOException {
-        byte[] terminationSignal = {0};
+        byte[] terminationSignal = {-1};
         DatagramPacket terminationPacket = new DatagramPacket(terminationSignal, terminationSignal.length, serverAddress, port);
         socket.send(terminationPacket);
     }
