@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 public class MainClient {
     private static final int BUFFER_SIZE = 1024;
@@ -35,7 +36,9 @@ public class MainClient {
             byte[] buffer = new byte[BUFFER_SIZE];
             int bytesRead;
             while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                DatagramPacket dataPacket = new DatagramPacket(buffer, bytesRead, serverAddress, PORT);
+                buffer = Arrays.copyOfRange(buffer, 0, bytesRead);
+                byte[] dataWithCRC = DataLinkLayer.addCRC(buffer);
+                DatagramPacket dataPacket = new DatagramPacket(dataWithCRC, dataWithCRC.length, serverAddress, PORT);
                 socket.send(dataPacket);
             }
 
@@ -43,14 +46,21 @@ public class MainClient {
             byte[] terminationSignal = {0};
             DatagramPacket terminationPacket = new DatagramPacket(terminationSignal, terminationSignal.length, serverAddress, PORT);
             socket.send(terminationPacket);
-            System.out.println("File sent successfully.");
+
             // Receive acknowledgement from the server
             byte[] receiveBuffer = new byte[BUFFER_SIZE];
             DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
             socket.receive(receivePacket);
 
-            String acknowledgment = new String(receivePacket.getData(), 0, receivePacket.getLength());
-            System.out.println("Server acknowledgment: " + acknowledgment);
+            if (!DataLinkLayer.isCRCValid(receivePacket.getData())) {
+                System.out.println("Invalid CRC in acknowledgment");
+                //DataLinkLayer.writeLog("Invalid CRC in received data from client: " + clientAddress + ":" + clientPort);
+
+            } else {
+                System.out.println("File sent successfully.");
+                String acknowledgment = new String(DataLinkLayer.removeCRC(receivePacket.getData()));
+                System.out.println("Server acknowledgment: " + acknowledgment);
+            }
 
             // Close file input stream and socket
             fileInputStream.close();
